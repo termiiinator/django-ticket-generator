@@ -1,0 +1,308 @@
+{% extends 'tickets/base.html' %}
+
+{% block title %}Билет №{{ ticket_number }} - {{ subject }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .controls-bar {
+        background: var(--surface);
+        box-shadow: 0 4px 24px var(--shadow);
+        padding: 20px 0;
+        margin-bottom: 32px;
+        border-radius: 16px;
+        border: 2px solid var(--border);
+    }
+
+    .controls-container {
+        display: flex;
+        gap: 12px;
+        justify-content: center;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .ticket-container {
+        display: flex;
+        justify-content: center;
+        align-items: flex-start;
+        padding: 40px 0 80px;
+        animation: fadeInUp 0.6s ease-out;
+    }
+
+    .ticket {
+        background: white;
+        width: 250mm;
+        height: 135mm;
+        padding: 18mm;
+        box-shadow: 0 16px 64px rgba(15, 23, 42, 0.15);
+        font-family: 'Times New Roman', serif;
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        position: relative;
+    }
+
+    .ticket::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 8px;
+        background: linear-gradient(90deg, 
+            var(--primary) 0%, 
+            var(--accent) 50%, 
+            var(--success) 100%
+        );
+    }
+
+    .ticket-header {
+        text-align: center;
+        border-bottom: 3px solid var(--primary);
+        padding-bottom: 10px;
+        margin-bottom: 14px;
+    }
+
+    .ticket-header .ministry {
+        font-size: 13px;
+        font-weight: 600;
+        margin-bottom: 4px;
+        color: var(--text);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .ticket-header .university {
+        font-size: 14px;
+        font-weight: 600;
+        margin-bottom: 6px;
+        color: var(--text);
+    }
+
+    .ticket-header .department {
+        font-size: 13px;
+        margin-bottom: 10px;
+        color: var(--text-muted);
+    }
+
+    .ticket-header .subject {
+        font-weight: 700;
+        font-size: 18px;
+        margin-top: 10px;
+        margin-bottom: 6px;
+        color: var(--primary);
+        letter-spacing: 0.3px;
+    }
+
+    .ticket-header .number {
+        font-size: 15px;
+        margin-top: 6px;
+        color: var(--text-muted);
+        font-weight: 600;
+    }
+
+    .ticket-content {
+        margin-bottom: 14px;
+    }
+
+    .question {
+        font-size: 14px;
+        margin-bottom: 8px;
+        line-height: 1.5;
+        color: #1a1a1a;
+        padding-left: 4px;
+    }
+
+    .question:hover {
+        background: rgba(245, 158, 11, 0.03);
+    }
+
+    .ticket-footer {
+        margin-top: 18px;
+        padding-top: 10px;
+        border-top: 2px solid #e5e7eb;
+        font-size: 13px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .ticket-footer .signature {
+        font-weight: 600;
+        color: var(--text);
+    }
+
+    .ticket-footer .date {
+        color: var(--text-muted);
+        font-weight: 600;
+    }
+
+    .btn-group {
+        display: inline-flex;
+        gap: 8px;
+    }
+
+    @media print {
+        @page {
+            size: A4 landscape;
+            margin: 0;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background: white;
+        }
+
+        body::before {
+            display: none;
+        }
+
+        .ticket-container {
+            background: white;
+            padding: 0;
+        }
+
+        .ticket {
+            box-shadow: none;
+            margin: 0;
+            border: none;
+        }
+
+        .controls-bar {
+            display: none !important;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .ticket {
+            width: 100%;
+            height: auto;
+            min-height: 135mm;
+        }
+
+        .controls-container {
+            flex-direction: column;
+        }
+
+        .btn-group {
+            width: 100%;
+            flex-direction: column;
+        }
+
+        .btn-group .btn {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="controls-bar no-print">
+    <div class="container">
+        <div class="controls-container">
+            <a href="{% url 'index' %}" class="btn btn-secondary">
+                ← Вернуться
+            </a>
+            
+            <div class="btn-group">
+                <form method="post" action="{% url 'generate_ticket' %}" style="display: inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="subject" value="{{ subject_code }}">
+                    <button type="submit" class="btn btn-success">
+                        🔄 Новый вариант
+                    </button>
+                </form>
+                
+                <button onclick="window.print()" class="btn btn-primary">
+                    🖨️ Печать
+                </button>
+                
+                <button onclick="copyTicket()" class="btn btn-accent">
+                    📋 Копировать
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="ticket-container">
+    <div class="ticket">
+        <!-- Шапка -->
+        <div class="ticket-header">
+            <div class="ministry">МИНИСТЕРСТВО ОБРАЗОВАНИЯ</div>
+            <div class="university">Азербайджанский Государственный Университет Нефти и Промышленности</div>
+            <div class="department">Кафедра Общей и Прикладной Математики</div>
+            <div class="subject">{{ subject }}</div>
+            <div class="number">Экзаменационный билет № {{ ticket_number }}</div>
+        </div>
+
+        <!-- Вопросы -->
+        <div class="ticket-content">
+            {% if is_physics %}
+                <!-- Физика - только вопросы -->
+                {% for question in physics_questions %}
+                <div class="question">
+                    {{ forloop.counter }}. {{ question.text }}
+                </div>
+                {% endfor %}
+            {% else %}
+                <!-- Стандартные предметы - только вопросы -->
+                {% for question in theory_questions %}
+                <div class="question">
+                    {{ forloop.counter }}. {{ question.text }}
+                </div>
+                {% endfor %}
+                
+                {% for question in practice_questions %}
+                <div class="question">
+                    {{ forloop.counter|add:theory_questions|length }}. {{ question.text }}
+                </div>
+                {% endfor %}
+            {% endif %}
+        </div>
+
+        <!-- Подпись -->
+        <div class="ticket-footer">
+            <span class="signature">Подпись студента: _______________</span>
+            <span class="date">{{ date }}</span>
+        </div>
+    </div>
+</div>
+
+<script>
+function copyTicket() {
+    let text = `ЭКЗАМЕНАЦИОННЫЙ БИЛЕТ № {{ ticket_number }}\nПредмет: {{ subject }}\nДата: {{ date }}\n\n`;
+    
+    {% if is_physics %}
+        {% for question in physics_questions %}
+        text += '{{ forloop.counter }}. {{ question.text|escapejs }}\n';
+        {% endfor %}
+    {% else %}
+        {% for question in theory_questions %}
+        text += '{{ forloop.counter }}. {{ question.text|escapejs }}\n';
+        {% endfor %}
+        {% for question in practice_questions %}
+        text += '{{ forloop.counter|add:theory_questions|length }}. {{ question.text|escapejs }}\n';
+        {% endfor %}
+    {% endif %}
+    
+    navigator.clipboard.writeText(text).then(() => {
+        // Создаем временное уведомление
+        const notification = document.createElement('div');
+        notification.className = 'message success';
+        notification.textContent = '✓ Билет скопирован в буфер обмена';
+        notification.style.position = 'fixed';
+        notification.style.top = '24px';
+        notification.style.right = '24px';
+        notification.style.zIndex = '10000';
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            notification.style.transform = 'translateX(400px)';
+            setTimeout(() => notification.remove(), 300);
+        }, 2500);
+    });
+}
+</script>
+{% endblock %}

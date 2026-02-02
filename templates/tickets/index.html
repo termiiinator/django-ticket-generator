@@ -1,0 +1,341 @@
+{% extends 'tickets/base.html' %}
+
+{% block extra_css %}
+<style>
+    .hero {
+        background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        padding: 48px 0;
+        margin-bottom: 48px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 600px;
+        height: 600px;
+        background: radial-gradient(circle, rgba(245, 158, 11, 0.15) 0%, transparent 70%);
+        border-radius: 50%;
+        animation: pulse 8s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.1); opacity: 0.8; }
+    }
+
+    .hero::after {
+        content: '';
+        position: absolute;
+        bottom: -30%;
+        left: -5%;
+        width: 400px;
+        height: 400px;
+        background: radial-gradient(circle, rgba(16, 185, 129, 0.12) 0%, transparent 70%);
+        border-radius: 50%;
+        animation: pulse 10s ease-in-out infinite reverse;
+    }
+
+    .hero-content {
+        position: relative;
+        z-index: 1;
+    }
+
+    .hero h1 {
+        font-family: 'Playfair Display', serif;
+        font-size: 52px;
+        font-weight: 900;
+        color: white;
+        margin-bottom: 16px;
+        line-height: 1.2;
+        text-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .hero-subtitle {
+        font-size: 18px;
+        color: rgba(255, 255, 255, 0.9);
+        font-weight: 500;
+        margin-bottom: 8px;
+    }
+
+    .hero-nav {
+        margin-top: 24px;
+    }
+
+    .subjects-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 24px;
+        margin-bottom: 32px;
+    }
+
+    .subject-card {
+        background: var(--surface);
+        border-radius: 20px;
+        padding: 32px;
+        box-shadow: 0 4px 24px var(--shadow);
+        border: 2px solid var(--border);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+        animation: fadeInUp 0.6s ease-out;
+        animation-fill-mode: both;
+    }
+
+    .subject-card:nth-child(1) { animation-delay: 0.1s; }
+    .subject-card:nth-child(2) { animation-delay: 0.2s; }
+    .subject-card:nth-child(3) { animation-delay: 0.3s; }
+    .subject-card:nth-child(4) { animation-delay: 0.4s; }
+    .subject-card:nth-child(5) { animation-delay: 0.5s; }
+
+    .subject-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 6px;
+        background: linear-gradient(90deg, var(--accent) 0%, var(--accent-light) 50%, var(--success) 100%);
+        transform: scaleX(0);
+        transform-origin: left;
+        transition: transform 0.5s ease;
+    }
+
+    .subject-card:hover::before {
+        transform: scaleX(1);
+    }
+
+    .subject-card:hover {
+        transform: translateY(-8px) scale(1.02);
+        box-shadow: 0 16px 48px var(--shadow-lg);
+        border-color: var(--accent);
+    }
+
+    .subject-card.disabled {
+        opacity: 0.6;
+    }
+
+    .subject-card.disabled:hover {
+        transform: none;
+        border-color: var(--border);
+    }
+
+    .subject-icon {
+        width: 56px;
+        height: 56px;
+        background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        margin-bottom: 20px;
+        box-shadow: 0 4px 16px rgba(245, 158, 11, 0.3);
+    }
+
+    .subject-card h3 {
+        font-family: 'Playfair Display', serif;
+        font-size: 24px;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 16px;
+        line-height: 1.3;
+    }
+
+    .subject-status {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 16px;
+    }
+
+    .subject-status.ready {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--success);
+    }
+
+    .subject-status.incomplete {
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--accent);
+    }
+
+    .subject-status::before {
+        content: '';
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: currentColor;
+    }
+
+    .alert {
+        padding: 16px 20px;
+        border-radius: 12px;
+        margin-top: 16px;
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .alert-warning {
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(252, 211, 77, 0.05) 100%);
+        border-left: 4px solid var(--accent);
+        color: #92400e;
+    }
+
+    .alert a {
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 700;
+        transition: color 0.3s ease;
+    }
+
+    .alert a:hover {
+        color: var(--primary);
+    }
+
+    .subject-card form {
+        width: 100%;
+    }
+
+    .subject-card .btn {
+        width: 100%;
+        justify-content: center;
+        margin-top: 12px;
+    }
+
+    .info-section {
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%);
+        border-radius: 20px;
+        padding: 40px;
+        border: 2px solid var(--border);
+        animation: fadeInUp 0.6s ease-out 0.6s both;
+    }
+
+    .info-section h3 {
+        font-family: 'Playfair Display', serif;
+        font-size: 28px;
+        font-weight: 700;
+        color: var(--primary);
+        margin-bottom: 20px;
+    }
+
+    .info-section p {
+        margin-bottom: 16px;
+        color: var(--text);
+        line-height: 1.8;
+    }
+
+    .info-list {
+        margin-left: 24px;
+        line-height: 2;
+    }
+
+    .info-list li {
+        color: var(--text);
+        margin-bottom: 12px;
+        position: relative;
+        padding-left: 8px;
+    }
+
+    .info-list li::marker {
+        color: var(--accent);
+        font-weight: 700;
+    }
+
+    .info-list strong {
+        color: var(--primary);
+        font-weight: 700;
+    }
+
+    @media (max-width: 768px) {
+        .hero h1 {
+            font-size: 36px;
+        }
+
+        .subjects-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .info-section {
+            padding: 24px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="hero no-print">
+    <div class="container">
+        <div class="hero-content">
+            <p class="hero-subtitle">✨ АГУНП • Кафедра Математики</p>
+            <h1>Генератор<br>Экзаменационных Билетов</h1>
+            <div class="hero-nav">
+                <a href="{% url 'questions_list' %}" class="btn btn-accent">
+                    📚 Управление вопросами
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <div class="card animate-in">
+        <h2 class="card-header">Выберите предмет</h2>
+        
+        <div class="subjects-grid">
+            {% for subject in subjects %}
+            <div class="subject-card {% if not subject.valid %}disabled{% endif %}">
+                <div class="subject-icon">
+                    {% if 'Анализ' in subject.name %}🔢
+                    {% elif 'Комплексный' in subject.name %}📐
+                    {% elif 'Диференциальные' in subject.name %}∫
+                    {% elif 'Численные' in subject.name %}💻
+                    {% elif 'Физика' in subject.name %}⚛️
+                    {% else %}📖{% endif %}
+                </div>
+                
+                <h3>{{ subject.name }}</h3>
+                
+                {% if subject.valid %}
+                    <span class="subject-status ready">✓ Готов к генерации</span>
+                    <form method="post" action="{% url 'generate_ticket' %}">
+                        {% csrf_token %}
+                        <input type="hidden" name="subject" value="{{ subject.code }}">
+                        <button type="submit" class="btn btn-primary">
+                            🎲 Сгенерировать билет
+                        </button>
+                    </form>
+                {% else %}
+                    <span class="subject-status incomplete">⚠️ Недостаточно вопросов</span>
+                    <div class="alert alert-warning">
+                        {{ subject.message }}
+                    </div>
+                    <a href="{% url 'questions_list' %}" class="btn btn-secondary">
+                        ➕ Добавить вопросы
+                    </a>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="info-section">
+        <h3>💡 О приложении</h3>
+        <p>Профессиональная система генерации экзаменационных билетов для университета.</p>
+        <ul class="info-list">
+            <li><strong>Стандартные предметы:</strong> 2 теоретических + 3 практических вопроса</li>
+            <li><strong>Физика:</strong> 5 вопросов различных уровней сложности (1-5)</li>
+            <li><strong>Печать:</strong> Оптимизировано для формата A4 landscape</li>
+            <li><strong>База данных:</strong> Централизованное хранение всех вопросов</li>
+        </ul>
+    </div>
+</div>
+{% endblock %}

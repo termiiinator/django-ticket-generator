@@ -1,0 +1,276 @@
+{% extends 'tickets/base.html' %}
+
+{% block title %}Управление вопросами{% endblock %}
+
+{% block extra_css %}
+<style>
+    .header {
+        background: white;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        padding: 24px 0;
+        margin-bottom: 32px;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .stat-card {
+        background: #f9fafb;
+        padding: 16px;
+        border-radius: 8px;
+    }
+
+    .stat-card h4 {
+        font-weight: 600;
+        margin-bottom: 8px;
+    }
+
+    .stat-card .stat-item {
+        font-size: 14px;
+        margin-bottom: 4px;
+    }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+        margin-bottom: 24px;
+    }
+
+    .question-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        padding: 16px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        margin-bottom: 12px;
+        transition: background-color 0.2s;
+    }
+
+    .question-item:hover {
+        background-color: #f9fafb;
+    }
+
+    .question-info {
+        flex: 1;
+    }
+
+    .question-meta {
+        font-size: 12px;
+        color: #6b7280;
+        margin-bottom: 8px;
+    }
+
+    .question-text {
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+    .delete-form {
+        display: inline;
+    }
+
+    .bulk-form {
+        display: grid;
+        gap: 16px;
+    }
+
+    .bulk-form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 16px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="header no-print">
+    <div class="container">
+        <div class="flex justify-between items-center">
+            <h1 style="font-size: 32px; font-weight: 700;">Управление вопросами</h1>
+            <a href="{% url 'index' %}" class="btn btn-primary">← Генератор</a>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Статистика -->
+    <div class="card">
+        <h3 class="card-header">Статистика</h3>
+        <div class="stats-grid">
+            {% for subject_code, stat in stats.items %}
+            <div class="stat-card">
+                <h4>{{ stat.name }}</h4>
+                {% if stat.levels %}
+                    {% for level, count in stat.levels.items %}
+                    <div class="stat-item">Уровень {{ level }}: {{ count }}</div>
+                    {% endfor %}
+                {% else %}
+                    <div class="stat-item">Теория: {{ stat.theory }}</div>
+                    <div class="stat-item">Практика: {{ stat.practice }}</div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Массовое добавление -->
+    <div class="card">
+        <h2 class="card-header">Массовое добавление вопросов</h2>
+        <form method="post" action="{% url 'add_bulk_questions' %}" class="bulk-form">
+            {% csrf_token %}
+            
+            <div class="bulk-form-row">
+                <div class="form-group">
+                    <label class="form-label">Предмет</label>
+                    <select name="subject" id="subject" class="form-control" onchange="updateTypeField()">
+                        {% for code, name in subjects %}
+                        <option value="{{ code }}">{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="form-group" id="type-group">
+                    <label class="form-label">Тип</label>
+                    <select name="type" class="form-control">
+                        <option value="theory">Теория</option>
+                        <option value="practice">Практика</option>
+                    </select>
+                </div>
+
+                <div class="form-group" id="difficulty-group" style="display: none;">
+                    <label class="form-label">Уровень</label>
+                    <select name="difficulty" class="form-control">
+                        {% for level in physics_levels %}
+                        <option value="{{ level }}">Уровень {{ level }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Вопросы (каждый с новой строки)</label>
+                <textarea name="text" class="form-control" rows="6" placeholder="Каждый вопрос с новой строки"></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Добавить</button>
+        </form>
+    </div>
+
+    <!-- Импорт/Экспорт -->
+    <div class="card">
+        <h2 class="card-header">Импорт / Экспорт</h2>
+        <div class="flex gap-4">
+            <a href="{% url 'export_questions' %}" class="btn btn-success">Экспорт JSON</a>
+            
+            <form method="post" action="{% url 'import_questions' %}" enctype="multipart/form-data" style="display: inline;">
+                {% csrf_token %}
+                <label class="btn btn-secondary" style="margin: 0; cursor: pointer;">
+                    Импорт JSON
+                    <input type="file" name="file" accept=".json" onchange="this.form.submit()" style="display: none;">
+                </label>
+            </form>
+        </div>
+    </div>
+
+    <!-- Фильтры -->
+    <div class="card">
+        <h3 class="card-header">Фильтры</h3>
+        <form method="get" class="filter-grid">
+            <div class="form-group">
+                <label class="form-label">Предмет</label>
+                <select name="subject" class="form-control">
+                    <option value="">Все</option>
+                    {% for code, name in subjects %}
+                    <option value="{{ code }}" {% if filters.subject == code %}selected{% endif %}>{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Тип</label>
+                <select name="type" class="form-control">
+                    <option value="">Все</option>
+                    <option value="theory" {% if filters.type == 'theory' %}selected{% endif %}>Теория</option>
+                    <option value="practice" {% if filters.type == 'practice' %}selected{% endif %}>Практика</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Уровень</label>
+                <select name="difficulty" class="form-control">
+                    <option value="">Все</option>
+                    {% for level in physics_levels %}
+                    <option value="{{ level }}" {% if filters.difficulty == level|stringformat:"s" %}selected{% endif %}>Уровень {{ level }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label">Поиск</label>
+                <input type="text" name="search" class="form-control" placeholder="Поиск по тексту" value="{{ filters.search }}">
+            </div>
+
+            <div class="form-group" style="display: flex; align-items: flex-end;">
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Применить</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Список вопросов -->
+    <div class="card">
+        <h2 class="card-header">Вопросы ({{ questions.count }})</h2>
+        
+        {% if questions %}
+            {% for question in questions %}
+            <div class="question-item">
+                <div class="question-info">
+                    <div class="question-meta">
+                        {{ question.get_subject_display }}
+                        {% if question.subject == 'physics' %}
+                            · Уровень {{ question.difficulty }}
+                        {% else %}
+                            · {{ question.get_type_display }}
+                        {% endif %}
+                    </div>
+                    <div class="question-text">{{ question.text }}</div>
+                </div>
+                
+                <form method="post" action="{% url 'delete_question' question.id %}" class="delete-form" onsubmit="return confirm('Удалить вопрос?')">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Удалить</button>
+                </form>
+            </div>
+            {% endfor %}
+        {% else %}
+            <p style="text-align: center; color: #6b7280; padding: 40px 0;">
+                Вопросов не найдено. Добавьте вопросы используя форму выше.
+            </p>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function updateTypeField() {
+    const subject = document.getElementById('subject').value;
+    const typeGroup = document.getElementById('type-group');
+    const difficultyGroup = document.getElementById('difficulty-group');
+    
+    if (subject === 'physics') {
+        typeGroup.style.display = 'none';
+        difficultyGroup.style.display = 'block';
+    } else {
+        typeGroup.style.display = 'block';
+        difficultyGroup.style.display = 'none';
+    }
+}
+
+// Вызываем при загрузке страницы
+updateTypeField();
+</script>
+{% endblock %}
