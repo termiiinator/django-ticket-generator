@@ -48,6 +48,19 @@ class Question(models.Model):
         return f"{self.get_subject_display()} - {self.get_type_display()}: {self.text[:50]}"
 
 
+class Ticket(models.Model):
+    questions = models.ManyToManyField(Question, verbose_name='Вопросы')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
+
+    class Meta:
+        verbose_name = 'Билет'
+        verbose_name_plural = 'Билеты'
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"Билет #{self.pk}"
+
+
 class TicketCounter(models.Model):
     """Модель для хранения счетчиков номеров билетов по предметам"""
     
