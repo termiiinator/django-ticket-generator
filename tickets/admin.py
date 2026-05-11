@@ -1,20 +1,28 @@
-from django.contrib import admin
-from .models import Question, TicketCounter
+﻿from django.contrib import admin
+from .models import Ticket, Question, Subject
+
+
+@admin.register(Subject)
+class SubjectAdmin(admin.ModelAdmin):
+    list_display = ['name', 'code']
+    search_fields = ['name', 'code']
 
 
 @admin.register(Question)
 class QuestionAdmin(admin.ModelAdmin):
-    list_display = ('id', 'subject', 'type', 'difficulty', 'text_preview', 'created_at')
-    list_filter = ('subject', 'type', 'difficulty', 'created_at')
-    search_fields = ('text',)
-    ordering = ('-created_at',)
+    list_display = ['text', 'subject', 'difficulty', 'created_at']
+    list_filter = ['subject', 'difficulty']
+    search_fields = ['text']
+    ordering = ['-created_at']
+
+
+@admin.register(Ticket)
+class TicketAdmin(admin.ModelAdmin):
+    list_display = ['id', 'created_at', 'get_question_count']
+    list_filter = ['created_at']
+    readonly_fields = ['created_at']
     
-    def text_preview(self, obj):
-        return obj.text[:50] + '...' if len(obj.text) > 50 else obj.text
-    text_preview.short_description = 'Текст вопроса'
-
-
-@admin.register(TicketCounter)
-class TicketCounterAdmin(admin.ModelAdmin):
-    list_display = ('subject', 'last_number')
-    list_filter = ('subject',)
+    def get_question_count(self, obj):
+        return obj.questions.count()
+    
+    get_question_count.short_description = 'Questions'
