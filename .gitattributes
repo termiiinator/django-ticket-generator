@@ -1,0 +1,4 @@
+# Tell GitHub Linguist to count templates as real code
+templates/**/*.html linguist-detectable=true
+templates/**/*.html linguist-documentation=false
+templates/**/*.html linguist-vendored=false
